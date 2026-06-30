@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Check, Compass, MapPin, Pencil, Route, RotateCcw, Stamp, X } from "lucide-react"
+import { Check, Compass, MapPin, Pencil, Route, RotateCcw, Stamp, Volume2, VolumeX, X } from "lucide-react"
 
 import { LINES, STATIONS, Station } from "@/lib/stations"
 import { useVisited } from "@/lib/use-visited"
@@ -63,6 +63,7 @@ export function FtwApp() {
   const [trip, setTrip] = React.useState<Station[] | null>(null)
   const [tripSize, setTripSize] = React.useState(4)
   const [managing, setManaging] = React.useState(false)
+  const [muted, setMuted] = React.useState(false)
 
   // Pools selon le mode.
   const unvisited = React.useMemo(
@@ -109,71 +110,103 @@ export function FtwApp() {
     clearResults()
   }
 
+  const visitedPct = STATIONS.length
+    ? Math.round((visited.length / STATIONS.length) * 100)
+    : 0
+
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col items-center gap-8 px-4 py-10">
-      <header className="text-center">
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-          Find the Ward
-        </h1>
-        <p className="mt-2 text-muted-foreground">
-          Tournez la roue, découvrez un quartier de Tokyo à explorer.
-        </p>
-      </header>
+    <div className="relative flex min-h-dvh w-full justify-center px-4 py-8 sm:py-12">
+      <div className="flex w-full max-w-xl flex-col items-center gap-7">
+        <header className="flex w-full items-start justify-between gap-4">
+          <div>
+            <h1 className="bg-linear-to-r from-white to-white/70 bg-clip-text text-2xl font-semibold tracking-tight text-transparent sm:text-3xl">
+              Find the Ward
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Découvre un quartier de Tokyo au hasard.
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={muted ? "Activer le son" : "Couper le son"}
+            aria-pressed={muted}
+            onClick={() => setMuted((m) => !m)}
+            className="shrink-0 rounded-full border border-white/10 bg-white/5 text-muted-foreground backdrop-blur-xl"
+          >
+            {muted ? <VolumeX /> : <Volume2 />}
+          </Button>
+        </header>
 
-      {/* Sélecteur de mode */}
-      <div className="inline-flex rounded-full border border-border bg-background p-1">
-        {MODES.map((m) => {
-          const active = mode === m.value
-          return (
-            <button
-              key={m.value}
-              onClick={() => switchMode(m.value)}
-              aria-pressed={active}
-              className={
-                "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors " +
-                (active
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-muted")
-              }
-            >
-              {m.icon}
-              {m.label}
-            </button>
-          )
-        })}
-      </div>
-
-      {mode === "trip" && (
-        <div className="-mt-4 flex items-center gap-2 text-sm text-muted-foreground">
-          <span>Gares par voyage&nbsp;:</span>
-          {[3, 4, 5].map((n) => (
-            <button
-              key={n}
-              onClick={() => setTripSize(n)}
-              aria-pressed={tripSize === n}
-              className={
-                "size-7 rounded-md border text-sm transition-colors " +
-                (tripSize === n
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border hover:bg-muted")
-              }
-            >
-              {n}
-            </button>
-          ))}
+        {/* Sélecteur de mode — segmenté en verre */}
+        <div className="flex w-full rounded-full border border-white/10 bg-white/5 p-1 backdrop-blur-xl">
+          {MODES.map((m) => {
+            const active = mode === m.value
+            return (
+              <button
+                key={m.value}
+                onClick={() => switchMode(m.value)}
+                aria-pressed={active}
+                className={
+                  "flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition-colors " +
+                  (active
+                    ? "bg-white/10 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] ring-1 ring-white/15"
+                    : "text-muted-foreground hover:text-foreground")
+                }
+              >
+                {m.icon}
+                <span className="hidden sm:inline">{m.label}</span>
+              </button>
+            )
+          })}
         </div>
-      )}
 
-      <Wheel
-        stations={startPool}
-        onResult={handleResult}
-        onSpinStart={clearResults}
-        emptyLabel={emptyLabel}
-      />
+        {mode === "trip" && (
+          <div className="-mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+            <span>Gares par voyage&nbsp;:</span>
+            {[3, 4, 5].map((n) => (
+              <button
+                key={n}
+                onClick={() => setTripSize(n)}
+                aria-pressed={tripSize === n}
+                className={
+                  "size-8 rounded-lg border text-sm transition-colors " +
+                  (tripSize === n
+                    ? "border-transparent bg-primary text-primary-foreground"
+                    : "border-white/10 bg-white/5 hover:bg-white/10")
+                }
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Carte héro : la roue */}
+        <div className="relative w-full overflow-hidden rounded-3xl border border-white/10 bg-white/4 p-6 backdrop-blur-xl sm:p-8">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -top-24 left-1/2 -z-0 h-48 w-48 -translate-x-1/2 rounded-full bg-primary/25 blur-3xl"
+          />
+          <div className="relative flex flex-col items-center gap-5">
+            <Wheel
+              stations={startPool}
+              onResult={handleResult}
+              onSpinStart={clearResults}
+              emptyLabel={emptyLabel}
+              muted={muted}
+            />
+            <p className="text-center text-sm text-muted-foreground">
+              {startPool.length === 0
+                ? emptyLabel
+                : "Appuie sur Tirer au centre de la roue."}
+            </p>
+          </div>
+        </div>
 
       {/* Résultat simple (Découverte / Cachets ratés) */}
       {result && (
-        <Card className="w-full max-w-md text-center">
+        <Card className="w-full border-white/10 text-center backdrop-blur-xl">
           <CardHeader>
             <CardTitle className="text-4xl font-bold tracking-tight">
               {result.name}
@@ -213,7 +246,7 @@ export function FtwApp() {
 
       {/* Carte trajet (Voyage) */}
       {trip && trip.length > 0 && (
-        <Card className="w-full max-w-md">
+        <Card className="w-full border-white/10 backdrop-blur-xl">
           <CardHeader>
             <CardTitle className="flex items-center justify-between text-lg">
               <span className="flex items-center gap-2">
@@ -265,8 +298,8 @@ export function FtwApp() {
                           className={
                             "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 font-medium " +
                             (isStamp
-                              ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
-                              : "bg-sky-500/15 text-sky-600 dark:text-sky-400")
+                              ? "bg-amber-400/15 text-amber-300"
+                              : "bg-cyan-400/15 text-cyan-300")
                           }
                         >
                           {isStamp ? (
@@ -303,28 +336,28 @@ export function FtwApp() {
         </Card>
       )}
 
-      {/* Suivi des visites */}
+      {/* Suivi des visites — carte verre */}
       {hydrated && (
-        <section className="w-full max-w-md">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold">
-              Visitées{" "}
-              <span className="text-muted-foreground">
-                {visited.length} / {STATIONS.length}
+        <section className="w-full rounded-3xl border border-white/10 bg-white/4 p-5 backdrop-blur-xl">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-baseline gap-2">
+              <h2 className="text-sm font-semibold">Visitées</h2>
+              <span className="text-sm text-muted-foreground">
+                {visited.length}/{STATIONS.length}
               </span>
               {pendingStampIds.size > 0 && (
-                <span className="ml-2 text-amber-500">
-                  · {pendingStampIds.size} cachet
-                  {pendingStampIds.size > 1 ? "s" : ""} à reprendre
+                <span className="text-xs text-amber-300">
+                  · {pendingStampIds.size} à reprendre
                 </span>
               )}
-            </h2>
+            </div>
             <div className="flex items-center gap-1">
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 aria-pressed={managing}
                 onClick={() => setManaging((m) => !m)}
+                className="border border-white/10 bg-white/5"
               >
                 <Pencil /> {managing ? "Terminé" : "Pré-remplir"}
               </Button>
@@ -336,11 +369,19 @@ export function FtwApp() {
             </div>
           </div>
 
+          {/* Barre de progression */}
+          <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-white/10">
+            <div
+              className="h-full rounded-full [background:linear-gradient(90deg,#8b5cf6,#ec4899,#22d3ee)] transition-[width] duration-500"
+              style={{ width: `${visitedPct}%` }}
+            />
+          </div>
+
           {/* Pré-remplissage : cochez les gares déjà visitées */}
           {managing && (
-            <div className="mb-4 rounded-lg border border-border p-3">
+            <div className="mt-4 rounded-2xl border border-white/10 bg-white/3 p-3">
               <p className="mb-2 text-xs text-muted-foreground">
-                Cochez les quartiers que vous avez déjà visités.
+                Coche les quartiers que tu as déjà visités.
               </p>
               <ul className="flex flex-wrap gap-1.5">
                 {STATIONS.map((s) => {
@@ -353,8 +394,8 @@ export function FtwApp() {
                         className={
                           "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors " +
                           (on
-                            ? "border-transparent bg-emerald-500 text-white"
-                            : "border-border bg-background hover:bg-muted")
+                            ? "border-transparent bg-primary text-primary-foreground"
+                            : "border-white/10 bg-white/5 hover:bg-white/10")
                         }
                       >
                         {on && <Check className="size-3" />}
@@ -368,19 +409,16 @@ export function FtwApp() {
           )}
 
           {visited.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Aucune gare visitée pour l’instant. À vous de jouer&nbsp;!
+            <p className="mt-4 text-sm text-muted-foreground">
+              Aucune gare visitée pour l’instant. À toi de jouer&nbsp;!
             </p>
           ) : (
-            <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
+            <ul className="mt-4 flex flex-col divide-y divide-white/5">
               {visited.map((v) => {
                 const s = STATIONS.find((x) => x.id === v.id)
                 if (!s) return null
                 return (
-                  <li
-                    key={v.id}
-                    className="flex items-center gap-2 px-3 py-2"
-                  >
+                  <li key={v.id} className="flex items-center gap-2 py-2">
                     <span className="flex min-w-0 flex-1 items-baseline gap-1.5">
                       <span className="truncate text-sm font-medium">
                         {s.name}
@@ -408,6 +446,7 @@ export function FtwApp() {
           )}
         </section>
       )}
+      </div>
     </div>
   )
 }
